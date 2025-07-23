@@ -1,0 +1,112 @@
+{
+  "version": "2",
+  "project": {
+    "name": "afs-fleetpro",
+    "description": "AFS FleetPro - Heavy-Duty Fleet Repair Management Platform"
+  },
+  "monorepo": {
+    "enabled": true,
+    "services": [
+      {
+        "name": "internal-api",
+        "path": "services/internal-api",
+        "envVarPrefix": "INTERNAL_API_"
+      },
+      {
+        "name": "portal-api",
+        "path": "services/portal-api",
+        "envVarPrefix": "PORTAL_API_"
+      },
+      {
+        "name": "comms-api",
+        "path": "services/comms-api",
+        "envVarPrefix": "COMMS_API_"
+      },
+      {
+        "name": "frontend",
+        "path": "services/frontend",
+        "envVarPrefix": "FRONTEND_"
+      }
+    ]
+  },
+  "services": {
+    "internal-api": {
+      "builder": "nixpacks",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 10,
+      "port": 8000,
+      "environment": {
+        "SERVICE_NAME": "internal-api",
+        "LOG_LEVEL": "info",
+        "CORS_ORIGINS": "*",
+        "MONGO_URI": "${mongodb.MONGODB_URI}",
+        "REDIS_URI": "${redis.REDIS_URI}"
+      }
+    },
+    "portal-api": {
+      "builder": "nixpacks",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 10,
+      "port": 8000,
+      "environment": {
+        "SERVICE_NAME": "portal-api",
+        "LOG_LEVEL": "info",
+        "CORS_ORIGINS": "*",
+        "MONGO_URI": "${mongodb.MONGODB_URI}",
+        "REDIS_URI": "${redis.REDIS_URI}"
+      }
+    },
+    "comms-api": {
+      "builder": "nixpacks",
+      "buildCommand": "pip install -r requirements.txt",
+      "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 10,
+      "port": 8000,
+      "environment": {
+        "SERVICE_NAME": "comms-api",
+        "LOG_LEVEL": "info",
+        "CORS_ORIGINS": "*",
+        "MONGO_URI": "${mongodb.MONGODB_URI}",
+        "REDIS_URI": "${redis.REDIS_URI}",
+        "WEBSOCKET_PING_INTERVAL": "30",
+        "WEBSOCKET_PING_TIMEOUT": "120"
+      }
+    },
+    "frontend": {
+      "builder": "nixpacks",
+      "buildCommand": "npm ci && npm run build",
+      "startCommand": "npx serve -s build -l $PORT",
+      "healthcheckPath": "/",
+      "healthcheckTimeout": 10,
+      "port": 3000,
+      "environment": {
+        "NODE_ENV": "production",
+        "VITE_INTERNAL_API_URL": "https://${internal-api.RAILWAY_PUBLIC_DOMAIN}",
+        "VITE_PORTAL_API_URL": "https://${portal-api.RAILWAY_PUBLIC_DOMAIN}",
+        "VITE_COMMS_API_URL": "https://${comms-api.RAILWAY_PUBLIC_DOMAIN}"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "mongodb",
+      "type": "mongodb"
+    },
+    {
+      "name": "redis",
+      "type": "redis"
+    }
+  ],
+  "environments": {
+    "production": {
+      "environment": {
+        "JWT_SECRET_KEY": "${JWT_SECRET_KEY}"
+      }
+    }
+  }
+}

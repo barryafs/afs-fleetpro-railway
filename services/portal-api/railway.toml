@@ -20,7 +20,7 @@ CORS_ORIGINS = "*"
 
 [service]
 name = "portal-api"
-internal_port = 8000
+internalPort = 8000
 auto_deploy = true
 
 [mounts]

@@ -19,7 +19,7 @@ PORT = "3000"
 
 [service]
 name = "frontend"
-internal_port = 3000
+internalPort = 3000
 auto_deploy = true
 
 # Environment variables needed for API connections

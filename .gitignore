@@ -159,3 +159,6 @@ temp/
 .lock-wscript
 .grunt
 .svelte-kit
+
+# Railway project configuration
+!.railway/
