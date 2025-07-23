@@ -1,0 +1,30 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npx serve -s build -l $PORT"
+healthcheckPath = "/"
+healthcheckTimeout = 10
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[nixpacks]
+nixPackages = ["nodejs", "npm"]
+
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+NODE_ENV = "production"
+PORT = "3000"
+
+[service]
+name = "frontend"
+internal_port = 3000
+auto_deploy = true
+
+# Environment variables needed for API connections
+# These will be populated in Railway dashboard
+[env]
+VITE_INTERNAL_API_URL = ""
+VITE_PORTAL_API_URL = ""
+VITE_COMMS_API_URL = ""

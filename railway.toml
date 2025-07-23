@@ -2,7 +2,6 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "echo 'This is a monorepo - individual services are deployed separately'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
@@ -24,6 +23,7 @@ directories = [
 name = "internal-api"
 path = "services/internal-api"
 dockerfile = "services/internal-api/Dockerfile"
+internalPort = 8000
 healthcheckPath = "/health"
 healthcheckTimeout = 10
 envVarPrefix = "INTERNAL_API_"
@@ -34,6 +34,7 @@ startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 name = "portal-api"
 path = "services/portal-api"
 dockerfile = "services/portal-api/Dockerfile"
+internalPort = 8000
 healthcheckPath = "/health"
 healthcheckTimeout = 10
 envVarPrefix = "PORTAL_API_"
@@ -44,6 +45,7 @@ startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 name = "comms-api"
 path = "services/comms-api"
 dockerfile = "services/comms-api/Dockerfile"
+internalPort = 8000
 healthcheckPath = "/health"
 healthcheckTimeout = 10
 envVarPrefix = "COMMS_API_"
@@ -54,6 +56,7 @@ startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 name = "frontend"
 path = "services/frontend"
 dockerfile = "services/frontend/Dockerfile"
+internalPort = 3000
 healthcheckPath = "/"
 healthcheckTimeout = 10
 envVarPrefix = "FRONTEND_"
