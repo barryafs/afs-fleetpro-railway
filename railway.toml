@@ -1,0 +1,70 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "echo 'This is a monorepo - individual services are deployed separately'"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[nixpacks]
+enable = true
+
+# Define this as a monorepo project
+[monorepo]
+autoDetect = true
+directories = [
+  { path = "services/internal-api", name = "internal-api" },
+  { path = "services/portal-api", name = "portal-api" },
+  { path = "services/comms-api", name = "comms-api" },
+  { path = "services/frontend", name = "frontend" }
+]
+
+# Internal API Service
+[[services]]
+name = "internal-api"
+path = "services/internal-api"
+dockerfile = "services/internal-api/Dockerfile"
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+envVarPrefix = "INTERNAL_API_"
+startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+# Portal API Service
+[[services]]
+name = "portal-api"
+path = "services/portal-api"
+dockerfile = "services/portal-api/Dockerfile"
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+envVarPrefix = "PORTAL_API_"
+startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+# Comms API Service
+[[services]]
+name = "comms-api"
+path = "services/comms-api"
+dockerfile = "services/comms-api/Dockerfile"
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+envVarPrefix = "COMMS_API_"
+startCommand = "cd /app && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+# Frontend Service
+[[services]]
+name = "frontend"
+path = "services/frontend"
+dockerfile = "services/frontend/Dockerfile"
+healthcheckPath = "/"
+healthcheckTimeout = 10
+envVarPrefix = "FRONTEND_"
+startCommand = "npx serve -s build -l $PORT"
+
+# MongoDB Plugin
+[[plugins]]
+name = "MongoDB"
+envVars = { MONGO_URI = "{{MONGO_CONNECTION_URI}}" }
+
+# Redis Plugin
+[[plugins]]
+name = "Redis"
+envVars = { REDIS_URI = "{{REDIS_CONNECTION_URI}}" }

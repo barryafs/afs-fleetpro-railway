@@ -1,0 +1,27 @@
+# AFS FleetPro - Railway Monorepo Configuration
+# This file indicates to Railway that this is a monorepo with multiple services
+
+[monorepo]
+enabled = true
+root = "."
+
+# Define services in the monorepo
+[[services]]
+name = "internal-api"
+path = "services/internal-api"
+
+[[services]]
+name = "portal-api"
+path = "services/portal-api"
+
+[[services]]
+name = "comms-api"
+path = "services/comms-api"
+
+[[services]]
+name = "frontend"
+path = "services/frontend"
+
+# Skip building the root directory
+[build]
+skip_root = true
