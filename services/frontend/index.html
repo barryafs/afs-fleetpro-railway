@@ -9,10 +9,6 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>AFS FleetPro - Fleet Repair Management</title>
-    <!-- Preconnect to API domains for performance -->
-    <link rel="preconnect" href="%REACT_APP_INTERNAL_API_URL%" />
-    <link rel="preconnect" href="%REACT_APP_PORTAL_API_URL%" />
-    <link rel="preconnect" href="%REACT_APP_COMMS_API_URL%" />
     <!-- Material Icons -->
     <link
       rel="stylesheet"
@@ -28,13 +24,5 @@
     <noscript>You need to enable JavaScript to run this application.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
-    <!-- Environment variables will be injected by Railway -->
-    <script>
-      window.ENV = {
-        INTERNAL_API_URL: "%REACT_APP_INTERNAL_API_URL%",
-        PORTAL_API_URL: "%REACT_APP_PORTAL_API_URL%",
-        COMMS_API_URL: "%REACT_APP_COMMS_API_URL%"
-      };
-    </script>
   </body>
 </html>

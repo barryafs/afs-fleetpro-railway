@@ -78,9 +78,24 @@ const useAuth = () => {
 // API service setup
 const setupAxios = () => {
   // Get API URLs from environment or fallback to defaults
-  const internalApiUrl = window.ENV?.INTERNAL_API_URL || 'http://localhost:5001';
-  const portalApiUrl = window.ENV?.PORTAL_API_URL || 'http://localhost:5002';
-  const commsApiUrl = window.ENV?.COMMS_API_URL || 'http://localhost:5003';
+  /**
+   * Prefer URLs injected by Vite at build-time (import.meta.env),
+   * fall back to the local defaults when running without env vars.
+   *
+   * NOTE:
+   *  • VITE_INTERNAL_API_URL, VITE_PORTAL_API_URL, VITE_COMMS_API_URL
+   *    are expected to be provided by Railway/Nixpacks or a local
+   *    `.env` file in the frontend service.
+   */
+  const {
+    VITE_INTERNAL_API_URL,
+    VITE_PORTAL_API_URL,
+    VITE_COMMS_API_URL
+  } = import.meta.env;
+
+  const internalApiUrl = VITE_INTERNAL_API_URL || 'http://localhost:5001';
+  const portalApiUrl   = VITE_PORTAL_API_URL   || 'http://localhost:5002';
+  const commsApiUrl    = VITE_COMMS_API_URL    || 'http://localhost:5003';
 
   // Create API instances
   const internalApi = axios.create({
