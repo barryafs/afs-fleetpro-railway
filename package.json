@@ -1,0 +1,80 @@
+{
+  "name": "afs-fleetpro",
+  "version": "1.0.0",
+  "description": "AFS FleetPro - Heavy-Duty Fleet Repair Management Platform",
+  "private": true,
+  "workspaces": [
+    "services/frontend"
+  ],
+  "scripts": {
+    "start": "concurrently \"npm:start:*\"",
+    "start:internal-api": "cd services/internal-api && uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload",
+    "start:portal-api": "cd services/portal-api && uvicorn app.main:app --host 0.0.0.0 --port 5002 --reload",
+    "start:comms-api": "cd services/comms-api && uvicorn app.main:app --host 0.0.0.0 --port 5003 --reload",
+    "start:frontend": "cd services/frontend && npm run dev",
+    "install:python": "concurrently \"npm:install:python:*\"",
+    "install:python:internal-api": "cd services/internal-api && pip install -r requirements.txt",
+    "install:python:portal-api": "cd services/portal-api && pip install -r requirements.txt",
+    "install:python:comms-api": "cd services/comms-api && pip install -r requirements.txt",
+    "install:all": "npm install && npm run install:python",
+    "build": "concurrently \"npm:build:*\"",
+    "build:frontend": "cd services/frontend && npm run build",
+    "test": "concurrently \"npm:test:*\"",
+    "test:frontend": "cd services/frontend && npm test",
+    "lint": "concurrently \"npm:lint:*\"",
+    "lint:frontend": "cd services/frontend && npm run lint",
+    "clean": "rimraf services/frontend/build",
+    "railway:up": "railway up",
+    "railway:status": "railway status",
+    "railway:logs": "railway logs",
+    "railway:logs:internal-api": "railway logs -s internal-api",
+    "railway:logs:portal-api": "railway logs -s portal-api",
+    "railway:logs:comms-api": "railway logs -s comms-api",
+    "railway:logs:frontend": "railway logs -s frontend",
+    "railway:shell:internal-api": "railway run -s internal-api bash",
+    "railway:shell:portal-api": "railway run -s portal-api bash",
+    "railway:shell:comms-api": "railway run -s comms-api bash",
+    "railway:shell:frontend": "railway run -s frontend sh",
+    "seed:demo": "cd services/internal-api && python -m scripts.seed_demo_data",
+    "prepare": "husky install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/afs-fleetpro.git"
+  },
+  "keywords": [
+    "fleet",
+    "repair",
+    "maintenance",
+    "heavy-duty",
+    "trucks",
+    "railway",
+    "fastapi",
+    "react"
+  ],
+  "author": "AFS FleetPro Team",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^8.2.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "rimraf": "^5.0.1"
+  },
+  "dependencies": {
+    "@railway/cli": "^3.3.1"
+  },
+  "lint-staged": {
+    "services/frontend/src/**/*.{js,jsx}": [
+      "cd services/frontend && npm run lint",
+      "cd services/frontend && npm run format"
+    ],
+    "services/**/app/**/*.py": [
+      "black",
+      "isort"
+    ]
+  }
+}

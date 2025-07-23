@@ -1,0 +1,64 @@
+{
+  "short_name": "AFS FleetPro",
+  "name": "AFS FleetPro - Heavy-Duty Fleet Repair Management",
+  "description": "Complete fleet maintenance and repair management platform for heavy-duty vehicles",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a365d",
+  "background_color": "#f7f9fc",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Dashboard View"
+    },
+    {
+      "src": "screenshot2.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Service Order Management"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Service Orders",
+      "short_name": "Orders",
+      "description": "View service orders",
+      "url": "/service-orders",
+      "icons": [{ "src": "order-icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Customer Tracker",
+      "short_name": "Tracker",
+      "description": "Track service status",
+      "url": "/tracker",
+      "icons": [{ "src": "tracker-icon.png", "sizes": "192x192" }]
+    }
+  ]
+}
