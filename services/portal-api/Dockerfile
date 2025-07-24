@@ -22,9 +22,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Copy entrypoint script and make executable *before* dropping privileges
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Copy Python bootstrap that resolves the PORT env-var and starts Uvicorn
+COPY start.py /start.py
 
 # Create non-root user
 RUN useradd -m -s /bin/bash appuser
@@ -37,8 +36,8 @@ EXPOSE 8000
 # Command to run the application
 # Use shell form so that Railway's provided PORT is respected;
 # default to 8000 for local development.
-# Entrypoint script handles PORT resolution and starts Uvicorn
-ENTRYPOINT ["/entrypoint.sh"]
+# The Python bootstrap handles PORT resolution and starts Uvicorn
+ENTRYPOINT ["python", "/start.py"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

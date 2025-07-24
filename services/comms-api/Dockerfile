@@ -22,9 +22,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Copy entrypoint and make it executable *before* dropping privileges
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# -----------------------------------------------------------------------------
+# Runtime bootstrap
+# -----------------------------------------------------------------------------
+# Copy the Python bootstrap script that resolves the PORT env-var and starts
+# the FastAPI application with Uvicorn.  Using a Python script avoids issues
+# where the literal string "$PORT" might be passed through without expansion.
+COPY start.py /start.py
 
 # Create non-root user
 RUN useradd -m -s /bin/bash appuser
@@ -38,8 +42,8 @@ EXPOSE 8000
 # Use shell form so that Railway (or any other PaaS) can inject the
 # desired port through the PORT environment variable. Fallback to 8000
 # for local development where PORT might not be set.
-# Use entrypoint so $PORT is resolved at runtime in a shell script
-ENTRYPOINT ["/entrypoint.sh"]
+# The Python bootstrap handles PORT resolution and starts Uvicorn
+ENTRYPOINT ["python", "/start.py"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

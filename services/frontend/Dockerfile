@@ -41,11 +41,10 @@ EXPOSE 3000
 # -----------------------------------------------------------------------------
 # Runtime Entrypoint
 # -----------------------------------------------------------------------------
-# Use an entrypoint script so that the $PORT environment variable provided by
-# Railway (or any other platform) is expanded at runtime in a shell context.
-# This avoids issues where the variable is passed literally to `serve`.
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Use a small Node.js bootstrap script so the $PORT environment variable
+# provided by Railway (or any other platform) is resolved at runtime.
+# The script then starts the static file server (`serve`).
+COPY start.js /start.js
 
 # Entrypoint launches the static server on the resolved port
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["node", "/start.js"]

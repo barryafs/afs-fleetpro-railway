@@ -23,12 +23,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # -----------------------------------------------------------------------------
-# Entrypoint
+# Runtime bootstrap
 # -----------------------------------------------------------------------------
-# Copy the runtime entrypoint that resolves the PORT env-var and launches
-# the FastAPI app *before* switching to the non-root user so we can chmod it.
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Copy the Python bootstrap script that resolves the PORT env-var and starts
+# the FastAPI application with uvicorn.  Using a Python script avoids the
+# issue where Railway injected a literal “$PORT” into shell-based commands.
+COPY start.py /start.py
 
 # Create non-root user
 RUN useradd -m -s /bin/bash appuser
@@ -38,8 +38,12 @@ USER appuser
 # Expose port for the application
 EXPOSE 8000
 
-# Use ENTRYPOINT so arguments can still be appended in the future if needed.
-ENTRYPOINT ["/entrypoint.sh"]
+# ─────────────────────────────────────────────────────────────────────────────
+# Launch service
+# ─────────────────────────────────────────────────────────────────────────────
+# Use the Python bootstrap script as the container entrypoint.  It prints
+# debugging information, resolves the PORT value, then execs uvicorn.
+ENTRYPOINT ["python", "/start.py"]
 
 # --------------------------------------------------------------------
 # Temporarily disable the container-level health check.
