@@ -38,6 +38,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ------------------------------------------------------------------------------
+# Root endpoint (`GET /`) – simple response for platform health-checks
+# ------------------------------------------------------------------------------
+
+@app.get("/", tags=["System"])
+async def root() -> Dict[str, str]:
+    """
+    Lightweight OK response so that infrastructure (e.g., Railway) probing the
+    root path gets a valid answer instead of a 404.  This **does not** require
+    DB connectivity and therefore responds even during cold-starts.
+    """
+    return {"status": "ok", "service": "internal-api"}
+
 # MongoDB connection
 mongo_client = None
 db = None

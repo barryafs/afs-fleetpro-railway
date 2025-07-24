@@ -37,6 +37,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# Root endpoint (`GET /`) – lightweight OK response so that infrastructure
+# health-checks probing the root path receive a 200 instead of a 404.  This
+# does **not** touch the database, so it succeeds even during cold-starts.
+# ---------------------------------------------------------------------------
+
+@app.get("/", tags=["System"])
+async def root() -> Dict[str, str]:
+    """
+    Simple liveness probe.  Returns a minimal JSON body indicating the service
+    is up.  Useful for platform-level health checks (e.g., Railway, K8s LB).
+    """
+    return {"status": "ok", "service": "portal-api"}
+
 # MongoDB connection
 mongo_client = None
 db = None
