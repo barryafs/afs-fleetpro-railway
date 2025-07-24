@@ -31,7 +31,9 @@ USER appuser
 EXPOSE 8000
 
 # Command to run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use shell form so that the PORT environment variable provided by Railway
+# is expanded at runtime. Fallback to 8000 when PORT is not set (local dev).
+CMD sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

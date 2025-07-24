@@ -20,22 +20,24 @@ COPY . .
 RUN npm run build
 
 # -----------------------------------------------------------------------------
-# Production stage
+# Production stage – use Node + `serve` instead of Nginx for Railway
 # -----------------------------------------------------------------------------
-FROM nginx:alpine
+FROM node:20-alpine AS runtime
+
+# Install lightweight static file server
+RUN npm install -g serve
 
 # Copy built static files from build stage
-COPY --from=build /app/build /usr/share/nginx/html
+WORKDIR /app
+COPY --from=build /app/build ./build
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Add health check
+# Health check (optional: returns 200 if index.html is served)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -q -O /dev/null http://localhost:80/ || exit 1
+    CMD wget -q -O /dev/null http://localhost:${PORT:-3000}/ || exit 1
 
 # Expose port
-EXPOSE 80
+EXPOSE 3000
 
-# Start Nginx server
-CMD ["nginx", "-g", "daemon off;"]
+# Start static server; use Railway-provided PORT if available
+# Use shell form so the ${PORT} environment variable is expanded at runtime.
+CMD sh -c 'serve -s build -l ${PORT:-3000}'

@@ -31,7 +31,10 @@ USER appuser
 EXPOSE 8000
 
 # Command to run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use shell form so that Railway (or any other PaaS) can inject the
+# desired port through the PORT environment variable. Fallback to 8000
+# for local development where PORT might not be set.
+CMD sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
