@@ -103,7 +103,9 @@ async def log_requests(request: Request, call_next):
 async def health_check():
     try:
         # Simple ping to MongoDB to check connection
-        if db:
+        # `db` is a Motor database object.  It does not implement truth-value
+        # testing, so we must explicitly compare against ``None``.
+        if db is not None:
             await db.command("ping")
             return {"status": "ok", "service": "portal-api", "database": "connected"}
         return {"status": "ok", "service": "portal-api", "database": "not connected"}

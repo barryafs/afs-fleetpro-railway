@@ -203,7 +203,9 @@ async def health_check():
     try:
         # Check MongoDB connection
         mongo_status = "disconnected"
-        if db:
+        # `db` is a Motor database object that does not support implicit
+        # truth-value testing.  Compare explicitly against ``None``.
+        if db is not None:
             try:
                 await db.command("ping")
                 mongo_status = "connected"
