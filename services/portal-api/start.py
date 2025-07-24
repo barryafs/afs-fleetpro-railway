@@ -66,7 +66,12 @@ def main():
         # the parent directory (i.e. the project root for this service) so the
         # `app` package can always be discovered.
         # ------------------------------------------------------------------
-        service_root = pathlib.Path(__file__).resolve().parent
+        # Inside the container the source code is copied to /app (see Dockerfile).
+        # `start.py` lives at the container root (/), so __file__.parent == "/"
+        # which is NOT where our application package resides.  Explicitly add
+        # /app (or override with APP_ROOT env var) to PYTHONPATH so that
+        # `import app.main` resolves correctly.
+        service_root = pathlib.Path(os.getenv("APP_ROOT", "/app")).resolve()
         if str(service_root) not in sys.path:
             sys.path.insert(0, str(service_root))
             logger.info("Added %s to PYTHONPATH for module resolution", service_root)
