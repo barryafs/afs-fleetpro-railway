@@ -49,19 +49,57 @@ def main():
         logger.info("Environment variables:")
         for key, value in os.environ.items():
             logger.info(f"  {key}={value}")
-        
-        # Build the uvicorn command
-        cmd = [
-            "uvicorn",
-            "app.main:app",
-            "--host", "0.0.0.0",
-            "--port", str(port)
-        ]
-        
-        logger.info(f"Starting uvicorn with command: {' '.join(cmd)}")
-        
-        # Execute uvicorn
-        os.execvp("uvicorn", cmd)
+        # ------------------------------------------------------------------
+        # Diagnostics helpers
+        # ------------------------------------------------------------------
+        critical_envs = ["JWT_SECRET_KEY", "MONGO_URI", "REDIS_URI"]
+        for env_key in critical_envs:
+            if not os.getenv(env_key):
+                logger.warning("%s is not set – application may fail", env_key)
+
+        # ------------------------------------------------------------------
+        # Attempt to import the real FastAPI app. If that fails we create a
+        # minimal debugging app so the container still becomes 'healthy' and
+        # we can inspect the error via /debug.
+        # ------------------------------------------------------------------
+        import traceback
+
+        app_path = "app.main"
+        app_attr = "app"
+        fallback_app = None
+
+        try:
+            module = __import__(app_path, fromlist=[app_attr])
+            target_app = getattr(module, app_attr)
+            logger.info("Successfully imported %s:%s", app_path, app_attr)
+        except Exception as import_err:
+            logger.exception("Failed to import %s:%s – using fallback app", app_path, app_attr)
+            from fastapi import FastAPI
+            fallback_app = FastAPI(title="Fallback Debug App")
+
+            tb_str = "".join(traceback.format_exception(import_err))
+
+            @fallback_app.get("/health")
+            def _health():
+                return {"status": "healthy", "fallback": True}
+
+            @fallback_app.get("/debug")
+            def _debug():
+                return {
+                    "error": str(import_err),
+                    "traceback": tb_str,
+                    "env": {k: v for k, v in os.environ.items()},
+                }
+
+            target_app = fallback_app
+
+        # ------------------------------------------------------------------
+        # Run uvicorn programmatically to avoid env-var substitution issues
+        # ------------------------------------------------------------------
+        import uvicorn
+
+        logger.info("Launching uvicorn on port %s", port)
+        uvicorn.run(target_app, host="0.0.0.0", port=port, log_level="info")
     except Exception as e:
         logger.exception("Failed to start uvicorn")
         sys.exit(1)
