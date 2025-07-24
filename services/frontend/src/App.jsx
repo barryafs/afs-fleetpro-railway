@@ -16,7 +16,12 @@ import {
   Search as SearchIcon,
   Notifications as NotificationsIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+
+// New context & provider
+import { ApiProvider, ApiContext } from './contexts/ApiContext';
+
+// Real Service Orders component
+import ServiceOrders from './components/ServiceOrders';
 
 // Mock authentication - in production use proper auth
 const useAuth = () => {
@@ -74,69 +79,6 @@ const useAuth = () => {
 
   return { isAuthenticated, user, loading, login, logout };
 };
-
-// API service setup
-const setupAxios = () => {
-  // Get API URLs from environment or fallback to defaults
-  /**
-   * Prefer URLs injected by Vite at build-time (import.meta.env),
-   * fall back to the local defaults when running without env vars.
-   *
-   * NOTE:
-   *  • VITE_INTERNAL_API_URL, VITE_PORTAL_API_URL, VITE_COMMS_API_URL
-   *    are expected to be provided by Railway/Nixpacks or a local
-   *    `.env` file in the frontend service.
-   */
-  const {
-    VITE_INTERNAL_API_URL,
-    VITE_PORTAL_API_URL,
-    VITE_COMMS_API_URL
-  } = import.meta.env;
-
-  const internalApiUrl = VITE_INTERNAL_API_URL || 'http://localhost:5001';
-  const portalApiUrl   = VITE_PORTAL_API_URL   || 'http://localhost:5002';
-  const commsApiUrl    = VITE_COMMS_API_URL    || 'http://localhost:5003';
-
-  // Create API instances
-  const internalApi = axios.create({
-    baseURL: internalApiUrl,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const portalApi = axios.create({
-    baseURL: portalApiUrl,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  const commsApi = axios.create({
-    baseURL: commsApiUrl,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  // Add auth interceptor
-  const addAuthHeader = (config) => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user && user.token) {
-      config.headers.Authorization = `Bearer ${user.token}`;
-    }
-    return config;
-  };
-
-  internalApi.interceptors.request.use(addAuthHeader);
-  portalApi.interceptors.request.use(addAuthHeader);
-  commsApi.interceptors.request.use(addAuthHeader);
-
-  return { internalApi, portalApi, commsApi };
-};
-
-// API context
-const ApiContext = React.createContext(null);
 
 // Auth context
 const AuthContext = React.createContext(null);
@@ -326,16 +268,6 @@ const Dashboard = () => (
   </Box>
 );
 
-const ServiceOrders = () => (
-  <Box>
-    <Typography variant="h4" gutterBottom>Service Orders</Typography>
-    <Typography paragraph>
-      Manage all your service orders here.
-    </Typography>
-    {/* Service order table would go here */}
-  </Box>
-);
-
 const Login = () => {
   const { login } = React.useContext(AuthContext);
   const [loading, setLoading] = useState(false);
@@ -474,11 +406,9 @@ const TrackerDemo = () => {
 
 // Main App component
 function App() {
-  const api = setupAxios();
-  
   return (
     <AuthProvider>
-      <ApiContext.Provider value={api}>
+      <ApiProvider>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -510,7 +440,7 @@ function App() {
           {/* Redirect root to dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </ApiContext.Provider>
+      </ApiProvider>
     </AuthProvider>
   );
 }

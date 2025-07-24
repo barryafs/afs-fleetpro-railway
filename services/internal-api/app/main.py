@@ -346,6 +346,39 @@ async def update_service_order_status(
         logger.error(f"Error updating service order status: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update service order status: {str(e)}")
 
+# ---------------------------------------------------------------------------
+# DELETE /internal/v1/service-orders/{service_order_id}
+# ---------------------------------------------------------------------------
+
+# Placed here so that it sits logically with other Service Order CRUD routes,
+# right after the PATCH status endpoint and before demo utilities.
+
+@app.delete("/internal/v1/service-orders/{service_order_id}")
+async def delete_service_order(
+    service_order_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """
+    Permanently delete a service order.  This **does not** cascade to related
+    data (e.g. messages) in this simplified demo implementation.
+    """
+    from bson.objectid import ObjectId
+
+    try:
+        result = await db.service_orders.delete_one({"_id": ObjectId(service_order_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Service order not found")
+
+        logger.info(f"Service order deleted: {service_order_id}")
+        return {"message": "Service order deleted"}
+
+    except HTTPException:
+        # Re-raise FastAPI HTTP exceptions untouched
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting service order: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete service order: {str(e)}")
+
 # Demo data endpoint - to quickly populate database
 @app.post("/internal/v1/demo-data")
 async def create_demo_data(current_user: Dict = Depends(get_current_user)):
@@ -433,6 +466,283 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error creating demo data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create demo data: {str(e)}")
+
+# =============================================================================
+# Customers CRUD
+# =============================================================================
+
+# Pydantic models
+
+class CustomerCreate(BaseModel):
+    name: str
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+class CustomerResponse(BaseModel):
+    id: str
+    name: str
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+# List / Filter customers
+
+@app.get("/internal/v1/customers", response_model=List[CustomerResponse])
+async def list_customers(
+    skip: int = 0,
+    limit: int = 100,
+    q: Optional[str] = None,
+    current_user: Dict = Depends(get_current_user)
+):
+    try:
+        filter_query = {}
+        if q:
+            # Simple case-insensitive regex search on name
+            filter_query["name"] = {"$regex": q, "$options": "i"}
+
+        cursor = db.customers.find(filter_query).skip(skip).limit(limit).sort("name", 1)
+        customers = []
+        async for doc in cursor:
+            doc["id"] = str(doc.pop("_id"))
+            customers.append(doc)
+        return customers
+    except Exception as e:
+        logger.error(f"Error listing customers: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list customers: {str(e)}")
+
+# Get single customer
+
+@app.get("/internal/v1/customers/{customer_id}", response_model=CustomerResponse)
+async def get_customer(customer_id: str, current_user: Dict = Depends(get_current_user)):
+    from bson.objectid import ObjectId
+    try:
+        customer = await db.customers.find_one({"_id": ObjectId(customer_id)})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        customer["id"] = str(customer.pop("_id"))
+        return customer
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting customer: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get customer: {str(e)}")
+
+# Create customer
+
+@app.post("/internal/v1/customers", response_model=CustomerResponse)
+async def create_customer(
+    customer: CustomerCreate,
+    current_user: Dict = Depends(get_current_user)
+):
+    try:
+        customer_doc = customer.dict()
+        result = await db.customers.insert_one(customer_doc)
+        customer_doc["id"] = str(result.inserted_id)
+        return customer_doc
+    except Exception as e:
+        logger.error(f"Error creating customer: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create customer: {str(e)}")
+
+# Update customer
+
+@app.patch("/internal/v1/customers/{customer_id}", response_model=CustomerResponse)
+async def update_customer(
+    customer_id: str,
+    customer: CustomerUpdate,
+    current_user: Dict = Depends(get_current_user)
+):
+    from bson.objectid import ObjectId
+    try:
+        update_data = {k: v for k, v in customer.dict().items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        await db.customers.update_one({"_id": ObjectId(customer_id)}, {"$set": update_data})
+        updated = await db.customers.find_one({"_id": ObjectId(customer_id)})
+        if not updated:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        updated["id"] = str(updated.pop("_id"))
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating customer: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update customer: {str(e)}")
+
+# Delete customer
+
+@app.delete("/internal/v1/customers/{customer_id}")
+async def delete_customer(customer_id: str, current_user: Dict = Depends(get_current_user)):
+    from bson.objectid import ObjectId
+    try:
+        result = await db.customers.delete_one({"_id": ObjectId(customer_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return {"message": "Customer deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting customer: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete customer: {str(e)}")
+
+# =============================================================================
+# Vehicles CRUD
+# =============================================================================
+
+class VehicleCreate(BaseModel):
+    customer_id: str
+    vin: str
+    year: int
+    make: str
+    model: str
+
+class VehicleUpdate(BaseModel):
+    vin: Optional[str] = None
+    year: Optional[int] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+
+class VehicleResponse(BaseModel):
+    id: str
+    customer_id: str
+    vin: str
+    year: int
+    make: str
+    model: str
+
+# List vehicles (optional customer_id filter)
+
+@app.get("/internal/v1/vehicles", response_model=List[VehicleResponse])
+async def list_vehicles(
+    skip: int = 0,
+    limit: int = 200,
+    customer_id: Optional[str] = None,
+    current_user: Dict = Depends(get_current_user)
+):
+    try:
+        filter_query = {}
+        if customer_id:
+            filter_query["customer_id"] = customer_id
+        cursor = db.vehicles.find(filter_query).skip(skip).limit(limit).sort("year", -1)
+        vehicles = []
+        async for doc in cursor:
+            doc["id"] = str(doc.pop("_id"))
+            vehicles.append(doc)
+        return vehicles
+    except Exception as e:
+        logger.error(f"Error listing vehicles: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list vehicles: {str(e)}")
+
+# Get vehicle
+
+@app.get("/internal/v1/vehicles/{vehicle_id}", response_model=VehicleResponse)
+async def get_vehicle(vehicle_id: str, current_user: Dict = Depends(get_current_user)):
+    from bson.objectid import ObjectId
+    try:
+        vehicle = await db.vehicles.find_one({"_id": ObjectId(vehicle_id)})
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        vehicle["id"] = str(vehicle.pop("_id"))
+        return vehicle
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting vehicle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get vehicle: {str(e)}")
+
+# Create vehicle
+
+@app.post("/internal/v1/vehicles", response_model=VehicleResponse)
+async def create_vehicle(vehicle: VehicleCreate, current_user: Dict = Depends(get_current_user)):
+    try:
+        doc = vehicle.dict()
+        result = await db.vehicles.insert_one(doc)
+        doc["id"] = str(result.inserted_id)
+        return doc
+    except Exception as e:
+        logger.error(f"Error creating vehicle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create vehicle: {str(e)}")
+
+# Update vehicle
+
+@app.patch("/internal/v1/vehicles/{vehicle_id}", response_model=VehicleResponse)
+async def update_vehicle(
+    vehicle_id: str,
+    vehicle: VehicleUpdate,
+    current_user: Dict = Depends(get_current_user)
+):
+    from bson.objectid import ObjectId
+    try:
+        update_data = {k: v for k, v in vehicle.dict().items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        await db.vehicles.update_one({"_id": ObjectId(vehicle_id)}, {"$set": update_data})
+        updated = await db.vehicles.find_one({"_id": ObjectId(vehicle_id)})
+        if not updated:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        updated["id"] = str(updated.pop("_id"))
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating vehicle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update vehicle: {str(e)}")
+
+# Delete vehicle
+
+@app.delete("/internal/v1/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: str, current_user: Dict = Depends(get_current_user)):
+    from bson.objectid import ObjectId
+    try:
+        result = await db.vehicles.delete_one({"_id": ObjectId(vehicle_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        return {"message": "Vehicle deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting vehicle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete vehicle: {str(e)}")
+
+# =============================================================================
+# Technicians (read-only for now)
+# =============================================================================
+
+class TechnicianResponse(BaseModel):
+    id: str
+    name: str
+    email: Optional[str] = None
+
+@app.get("/internal/v1/technicians", response_model=List[TechnicianResponse])
+async def list_technicians(current_user: Dict = Depends(get_current_user)):
+    try:
+        cursor = db.technicians.find({}).sort("name", 1)
+        technicians = []
+        async for doc in cursor:
+            doc["id"] = str(doc.pop("_id"))
+            technicians.append(doc)
+        return technicians
+    except Exception as e:
+        logger.error(f"Error listing technicians: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list technicians: {str(e)}")
+
+@app.get("/internal/v1/technicians/{technician_id}", response_model=TechnicianResponse)
+async def get_technician(technician_id: str, current_user: Dict = Depends(get_current_user)):
+    from bson.objectid import ObjectId
+    try:
+        tech = await db.technicians.find_one({"_id": ObjectId(technician_id)})
+        if not tech:
+            raise HTTPException(status_code=404, detail="Technician not found")
+        tech["id"] = str(tech.pop("_id"))
+        return tech
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting technician: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get technician: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
