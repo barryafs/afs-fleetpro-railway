@@ -288,7 +288,9 @@ async def create_service_order(
     try:
         # Generate service order number (simple sequential for demo)
         count = await db.service_orders.count_documents({})
-        so_number = f"{datetime.now().year}-{count+1:05d}"
+        # Requirements: 5-digit sequential number with **no** year prefix
+        # Example: "00001", "00002", …
+        so_number = f"{count + 1:05d}"
         # Convert incoming Pydantic model to dict (deep copy)
         new_so = service_order.dict()
 
@@ -774,7 +776,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
         # Create demo service orders with new structure
         service_orders = [
             {
-                "number": "2025-00001",
+                "number": "00001",
                 "customer_id": customer_ids[0],
                 "vehicle_id": vehicle_ids[0],
                 "current_mileage": 285000,
@@ -899,7 +901,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 ]
             },
             {
-                "number": "2025-00002",
+                "number": "00002",
                 "customer_id": customer_ids[1],
                 "vehicle_id": vehicle_ids[2],
                 "current_mileage": 178500,
@@ -968,7 +970,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 ]
             },
             {
-                "number": "2025-00003",
+                "number": "00003",
                 "customer_id": customer_ids[0],
                 "vehicle_id": vehicle_ids[1],
                 "current_mileage": 142300,
