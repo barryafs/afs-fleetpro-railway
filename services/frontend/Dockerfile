@@ -38,6 +38,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 3000
 
-# Start static server; use Railway-provided PORT if available
-# Use shell form so the ${PORT} environment variable is expanded at runtime.
-CMD sh -c 'serve -s build -l ${PORT:-3000}'
+# -----------------------------------------------------------------------------
+# Runtime Entrypoint
+# -----------------------------------------------------------------------------
+# Use an entrypoint script so that the $PORT environment variable provided by
+# Railway (or any other platform) is expanded at runtime in a shell context.
+# This avoids issues where the variable is passed literally to `serve`.
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Entrypoint launches the static server on the resolved port
+ENTRYPOINT ["/entrypoint.sh"]
