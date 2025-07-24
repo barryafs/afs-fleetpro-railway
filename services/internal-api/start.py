@@ -10,6 +10,7 @@ import os
 import sys
 import subprocess
 import logging
+import pathlib
 
 # Configure logging
 logging.basicConfig(
@@ -56,6 +57,19 @@ def main():
         for env_key in critical_envs:
             if not os.getenv(env_key):
                 logger.warning("%s is not set – application may fail", env_key)
+
+        # ------------------------------------------------------------------
+        # Ensure Python can locate the `app` package.
+        # The working directory inside the container is /app (see Dockerfile)
+        # but when this script is executed as an ENTRYPOINT, the interpreter’s
+        # import path might not include the current directory.  Explicitly add
+        # the parent directory (i.e. the project root for this service) so the
+        # `app` package can always be discovered.
+        # ------------------------------------------------------------------
+        service_root = pathlib.Path(__file__).resolve().parent
+        if str(service_root) not in sys.path:
+            sys.path.insert(0, str(service_root))
+            logger.info("Added %s to PYTHONPATH for module resolution", service_root)
 
         # ------------------------------------------------------------------
         # Attempt to import the real FastAPI app. If that fails we create a
