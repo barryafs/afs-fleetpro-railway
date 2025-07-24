@@ -24,9 +24,6 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS runtime
 
-# Install lightweight static file server
-RUN npm install -g serve
-
 # Copy built static files from build stage
 WORKDIR /app
 COPY --from=build /app/build ./build
@@ -41,10 +38,7 @@ EXPOSE 3000
 # -----------------------------------------------------------------------------
 # Runtime Entrypoint
 # -----------------------------------------------------------------------------
-# Use a small Node.js bootstrap script so the $PORT environment variable
-# provided by Railway (or any other platform) is resolved at runtime.
-# The script then starts the static file server (`serve`).
-COPY start.js /start.js
-
-# Entrypoint launches the static server on the resolved port
-ENTRYPOINT ["node", "/start.js"]
+# Use npx to run `serve` without globally installing it. The shell form
+# allows the ${PORT} environment variable provided by Railway (or any
+# other platform) to be evaluated at runtime. Fallback to 3000 locally.
+CMD ["sh", "-c", "npx serve -s build -l ${PORT:-3000}"]
