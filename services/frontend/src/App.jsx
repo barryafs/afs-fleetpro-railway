@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 
 // New context & provider
-import { ApiProvider, ApiContext } from './contexts/ApiContext';
+import { ApiProvider, ApiContext } from './contexts/ApiContext.jsx';
 
 // Real Service Orders component
 import ServiceOrders from './components/ServiceOrders';

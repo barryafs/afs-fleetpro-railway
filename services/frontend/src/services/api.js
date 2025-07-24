@@ -6,7 +6,7 @@
  */
 
 import { useContext } from 'react';
-import { ApiContext } from '../contexts/ApiContext';
+import { ApiContext } from '../contexts/ApiContext.jsx';
 
 /**
  * Custom hook to use the API services
