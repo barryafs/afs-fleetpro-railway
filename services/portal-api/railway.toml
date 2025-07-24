@@ -1,28 +1,12 @@
-[build]
-builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt"
-
-[deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
-healthcheckTimeout = 10
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 5
-
-[nixpacks]
-nixPackages = ["python312", "gcc"]
-
-[variables]
-NIXPACKS_PYTHON_VERSION = "3.12"
-SERVICE_NAME = "portal-api"
-LOG_LEVEL = "info"
-CORS_ORIGINS = "*"
-
-[service]
-name = "portal-api"
-internalPort = 8000
-auto_deploy = true
-
-[mounts]
-source = "portal_api_data"
-destination = "/data"
+# This is an intentionally empty railway.toml file
+# 
+# Railway was caching a previous version of this file that contained:
+#   uvicorn app.main:app --host 0.0.0.0 --port $PORT
+#
+# This caused deployment failures because $PORT wasn't being expanded.
+# 
+# This empty file overrides that cached version and forces Railway
+# to use the Dockerfile's ENTRYPOINT instead, which properly handles
+# the PORT environment variable through a Python script.
+#
+# DO NOT ADD ANY COMMANDS HERE - let the Dockerfile handle everything.
