@@ -28,10 +28,26 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# ---------------------------------------------------------------------------
+# CORS configuration
+# ---------------------------------------------------------------------------
+# Allow the production frontend domain plus common local-development origins.
+# Can be overridden entirely via the `CORS_ORIGINS` environment variable
+# (comma-separated list).
+cors_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "https://frontend-production-3e4a.up.railway.app,"
+    "http://localhost:5173,"
+    "http://localhost:3000"
+).split(",")
+
+# Log allowed origins so we can confirm in Railway logs
+logger.info(f"Allowed CORS origins: {cors_origins}")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

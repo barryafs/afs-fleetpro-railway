@@ -29,10 +29,27 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# ---------------------------------------------------------------------------
+# CORS configuration
+# ---------------------------------------------------------------------------
+# The frontend hosted on Railway needs to talk to this API.  We build the list
+# of allowed origins from the `CORS_ORIGINS` env-var, but fall back to a safe
+# default that includes the production frontend domain and common local dev
+# ports.  This helps avoid the dreaded “Network Error” caused by blocked CORS.
+cors_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "https://frontend-production-3e4a.up.railway.app,"
+    "http://localhost:5173,"
+    "http://localhost:3000"
+).split(",")
+
+# Log the CORS origins so we can verify in Railway logs
+logger.info(f"Allowed CORS origins: {cors_origins}")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -25,9 +25,27 @@ export const ApiProvider = ({ children }) => {
     VITE_COMMS_API_URL
   } = import.meta.env;
 
-  const internalApiUrl = VITE_INTERNAL_API_URL || 'http://localhost:5001';
-  const portalApiUrl   = VITE_PORTAL_API_URL   || 'http://localhost:5002';
-  const commsApiUrl    = VITE_COMMS_API_URL    || 'http://localhost:5003';
+  // ------------------------------------------------------------------------
+  // Fallback to Railway production URLs when env vars are not provided.
+  // This prevents the frontend from defaulting to localhost in production
+  // and immediately failing with a CORS / network error.
+  // ------------------------------------------------------------------------
+  const internalApiUrl =
+    VITE_INTERNAL_API_URL ||
+    'https://internal-api-production-5aca.up.railway.app';
+  const portalApiUrl =
+    VITE_PORTAL_API_URL ||
+    'https://portal-api-production-3cd3.up.railway.app';
+  const commsApiUrl =
+    VITE_COMMS_API_URL ||
+    'https://comms-api-production.up.railway.app';
+
+  // Helpful diagnostics in the browser console
+  /* eslint-disable no-console */
+  console.log('[ApiProvider] internalApiUrl:', internalApiUrl);
+  console.log('[ApiProvider] portalApiUrl  :', portalApiUrl);
+  console.log('[ApiProvider] commsApiUrl   :', commsApiUrl);
+  /* eslint-enable no-console */
 
   // Create API instances
   const internalApi = axios.create({
@@ -63,6 +81,19 @@ export const ApiProvider = ({ children }) => {
   internalApi.interceptors.request.use(addAuthHeader);
   portalApi.interceptors.request.use(addAuthHeader);
   commsApi.interceptors.request.use(addAuthHeader);
+
+  // Log response errors to help diagnose network/CORS problems
+  const logError =
+    (label) =>
+    (error) => {
+      // eslint-disable-next-line no-console
+      console.error(`[${label}] API error:`, error?.response || error);
+      return Promise.reject(error);
+    };
+
+  internalApi.interceptors.response.use((r) => r, logError('Internal'));
+  portalApi.interceptors.response.use((r) => r, logError('Portal'));
+  commsApi.interceptors.response.use((r) => r, logError('Comms'));
 
   return (
     <ApiContext.Provider value={{ internalApi, portalApi, commsApi }}>
