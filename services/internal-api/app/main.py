@@ -74,17 +74,18 @@ db = None
 
 # Service Order Status Enum (as strings for simplicity)
 SERVICE_ORDER_STATUSES = [
-    "service_requested",
-    "tech_assigned",
-    "tech_en_route",
-    "tech_arrived",
-    "diagnosis_in_progress",
-    "awaiting_approval",
-    "parts_being_sourced",
-    "repair_in_progress",
-    "quality_check",
-    "repair_complete",
-    "invoice_sent"
+    # 11-stage progression from requirements (customer-facing codes)
+    "SERVICE_REQUESTED",
+    "TECHNICIAN_ASSIGNED",
+    "TECHNICIAN_EN_ROUTE",
+    "TECHNICIAN_ARRIVED",
+    "DIAGNOSIS_IN_PROGRESS",
+    "AWAITING_APPROVAL",
+    "PARTS_BEING_SOURCED",
+    "REPAIR_IN_PROGRESS",
+    "QUALITY_CHECK",
+    "REPAIR_COMPLETE",
+    "INVOICE_SENT",
 ]
 
 # Models
@@ -160,11 +161,39 @@ class LocationInfo(BaseModel):
     location_name: Optional[str] = None
     cross_streets: Optional[str] = None
     gps_coordinates: Optional[Dict[str, float]] = None
+    # Extended requirement fields
+    access_hours: Optional[str] = None  # e.g. business_hours_only
+    gate_code: Optional[str] = None
+    special_instructions: Optional[str] = None
+    # Contacts / security
+    site_contact: Optional[Dict[str, str]] = None  # {name, phone, role}
+    backup_contact: Optional[Dict[str, str]] = None
+    security_check_in_required: Optional[bool] = None
+    escort_required: Optional[bool] = None
 
 class ComplaintInput(BaseModel):
     id: int
     description: str
     photos: List[str] = []
+
+# ── Safety & Commercial supplemental models ──────────────────────────────
+
+class SafetyRequirements(BaseModel):
+    ppe_required: Optional[Dict[str, bool]] = None          # hard_hat, safety_vest, etc.
+    certifications_required: Optional[List[str]] = None     # TWIC Card, OSHA 10 …
+    site_hazards: Optional[List[str]] = None
+    hazard_details: Optional[str] = None
+
+
+class CommercialInfo(BaseModel):
+    po_required: Optional[bool] = None
+    po_number: Optional[str] = None
+    parts_markup_percentage: Optional[int] = Field(
+        None, ge=150, le=300, description="Markup between 150-300 (1.5x-3x)"
+    )
+    labor_rate_override: Optional[float] = None
+    tax_exempt: Optional[bool] = None
+    payment_terms: Optional[str] = None      # net30, net15, cod, etc.
 
 
 class ServiceOrderCreate(BaseModel):
@@ -184,6 +213,10 @@ class ServiceOrderCreate(BaseModel):
 
     # Location (required for mobile/roadside)
     vehicle_location: Optional[LocationInfo] = None
+
+    # NEW complex objects
+    safety_requirements: Optional[SafetyRequirements] = None
+    commercial_info: Optional[CommercialInfo] = None
 
     # Action items may be added later – start empty
     action_items: List[ActionItem] = []
@@ -298,7 +331,7 @@ async def create_service_order(
         new_so.update(
             {
                 "number": so_number,
-                "status": "service_requested",
+                "status": "SERVICE_REQUESTED",
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow(),
                 "created_by": current_user["id"],
@@ -306,7 +339,7 @@ async def create_service_order(
                 "tracker_public_token": uuid4().hex,  # 32-char token for public tracker
                 "tracker_events": [
                     {
-                        "status": "service_requested",
+                        "status": "SERVICE_REQUESTED",
                         "timestamp": datetime.utcnow(),
                         "user_id": current_user["id"],
                     }
@@ -783,7 +816,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "service_type": "shop_service",
                 "initial_assessment": "Possible turbo or EGR issue",
                 "urgency": "high",
-                "status": "tech_assigned",
+                "status": "TECHNICIAN_ASSIGNED",
                 "complaints": [
                     {
                         "id": 1,
@@ -889,12 +922,12 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "tracker_public_token": "demo1234567890abcdef1234567890ab",
                 "tracker_events": [
                     {
-                        "status": "service_requested",
+                        "status": "SERVICE_REQUESTED",
                         "timestamp": datetime.utcnow() - timedelta(hours=2),
                         "user_id": current_user["id"]
                     },
                     {
-                        "status": "tech_assigned",
+                        "status": "TECHNICIAN_ASSIGNED",
                         "timestamp": datetime.utcnow() - timedelta(hours=1),
                         "user_id": current_user["id"]
                     }
@@ -908,7 +941,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "service_type": "mobile_service",
                 "initial_assessment": "Air leak at gladhand connection, possible brake chamber issue",
                 "urgency": "critical",
-                "status": "service_requested",
+                "status": "SERVICE_REQUESTED",
                 "complaints": [
                     {
                         "id": 1,
@@ -963,7 +996,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "tracker_public_token": uuid4().hex,
                 "tracker_events": [
                     {
-                        "status": "service_requested",
+                        "status": "SERVICE_REQUESTED",
                         "timestamp": datetime.utcnow(),
                         "user_id": current_user["id"]
                     }
@@ -978,7 +1011,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "service_type": "shop_service",
                 "initial_assessment": "Routine maintenance, possible hydraulic pump issue",
                 "urgency": "normal",
-                "status": "service_requested",
+                "status": "SERVICE_REQUESTED",
                 "complaints": [
                     {
                         "id": 1,
@@ -1063,7 +1096,7 @@ async def create_demo_data(current_user: Dict = Depends(get_current_user)):
                 "tracker_public_token": uuid4().hex,
                 "tracker_events": [
                     {
-                        "status": "service_requested",
+                        "status": "SERVICE_REQUESTED",
                         "timestamp": datetime.utcnow(),
                         "user_id": current_user["id"]
                     }
@@ -1094,6 +1127,9 @@ class CustomerCreate(BaseModel):
     name: str
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    parts_markup_percentage: Optional[int] = Field(
+        230, ge=150, le=300, description="Default markup 150-300 (2.3x default)"
+    )
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
@@ -1105,6 +1141,7 @@ class CustomerResponse(BaseModel):
     name: str
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
+    parts_markup_percentage: Optional[int] = None
 
 # List / Filter customers
 
